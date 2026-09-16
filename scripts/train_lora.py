@@ -12,6 +12,7 @@ Loss sadece cevap (kod) tokenlarinda hesaplanir; prompt tokenlari -100 ile maske
 
 import argparse
 import json
+import math
 import os
 
 import torch
@@ -111,6 +112,11 @@ def main():
     model = get_peft_model(model, lora_cfg)
     model.print_trainable_parameters()
 
+    # warmup_ratio transformers 5.17'de kaldirildi; adim sayisini kendimiz hesapliyoruz (her surumde calisir).
+    steps_per_epoch = math.ceil(len(train_tok) / (args.batch_size * args.grad_accum))
+    total_steps = args.max_steps if args.max_steps > 0 else math.ceil(steps_per_epoch * args.epochs)
+    warmup_steps = max(1, round(0.05 * total_steps))
+
     training_args = TrainingArguments(
         output_dir=args.output_dir,
         num_train_epochs=args.epochs,
@@ -120,7 +126,7 @@ def main():
         per_device_eval_batch_size=args.batch_size,
         gradient_accumulation_steps=args.grad_accum,
         lr_scheduler_type="cosine",
-        warmup_ratio=0.05,
+        warmup_steps=warmup_steps,
         weight_decay=0.0,
         logging_steps=5,
         eval_strategy="epoch",
@@ -156,7 +162,7 @@ def main():
                 "val_split": "full/validation",
                 "train_examples": len(train_tok),
                 "dropped_task_ids": dropped,
-                "hyperparameters": vars(args),
+                "hyperparameters": {**vars(args), "warmup_steps": warmup_steps, "total_steps": total_steps},
                 "log_history": trainer.state.log_history,
                 "best_checkpoint": trainer.state.best_model_checkpoint,
             },
