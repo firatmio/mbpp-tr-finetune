@@ -1,0 +1,9 @@
+# Colab notebook'unda kullanılacak temel bağımlılıklar
+# (Colab'da genelde torch/transformers önceden kurulu gelir, burası referans içindir)
+transformers>=4.46.0
+datasets>=2.19.0
+peft>=0.13.0
+trl>=0.11.0
+accelerate>=1.0.0
+bitsandbytes>=0.44.0
+huggingface_hub>=0.25.0

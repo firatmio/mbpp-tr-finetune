@@ -1,0 +1,27 @@
+# Büyük dosyalar / model ağırlıkları
+outputs/
+*.safetensors
+*.bin
+*.pt
+*.ckpt
+
+# Veri (HF Hub'dan çekiliyor, repo'da tutulmuyor)
+data/*
+!data/.gitkeep
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Ortam / secrets
+.env
+*.token
+
+# OS
+.DS_Store
+Thumbs.db
