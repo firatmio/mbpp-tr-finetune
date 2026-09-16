@@ -3,7 +3,7 @@
 ## Proje amacı
 
 [firatmio/mbpp-tr](https://huggingface.co/datasets/firatmio/mbpp-tr) veri seti uzerinde kucuk bir acik
-modeli (Qwen3-1.7B-Instruct) LoRA ile fine-tune ederek "Turkce soru -> Python kodu" gorevine
+modeli (Qwen3-1.7B) LoRA ile fine-tune ederek "Turkce soru -> Python kodu" gorevine
 ozellestirmek. Amac, Firat'in HuggingFace profilini (CV icin) guclendiren uclu bir proje zincirinin
 son parcasini tamamlamak: **dataset (mbpp-tr) -> model (bu proje) -> demo (Space, siradaki adim)**.
 
@@ -16,7 +16,9 @@ son parcasini tamamlamak: **dataset (mbpp-tr) -> model (bu proje) -> demo (Space
 
 ## Base model karari
 
-**Qwen3-1.7B-Instruct** secildi (Qwen2.5-1.5B-Instruct yerine):
+**Qwen3-1.7B** (`Qwen/Qwen3-1.7B`) secildi (Qwen2.5-1.5B-Instruct yerine):
+- Not: ayri bir "-Instruct" repo'su yok; Qwen3-1.7B zaten chat/hybrid-thinking modeli.
+  Egitim ve eval'de `enable_thinking=False` kullaniliyor.
 - Apache 2.0 lisansli, mbpp-tr'nin CC-BY-4.0'i ile uyumlu bir kombinasyon.
 - Coding/LiveCodeBench'te Qwen2.5-1.5B'den belirgin sekilde daha guclu, boyut neredeyse ayni.
 - Cok dilli egitilmis, Turkce icin ayrica bir "Turkce base model" aramaya gerek yok.
@@ -25,7 +27,10 @@ son parcasini tamamlamak: **dataset (mbpp-tr) -> model (bu proje) -> demo (Space
 
 - **LoRA** fine-tune (tam model degil) -- adapter agirliklari kucuk, GPU butcesi dusuk kalir
   (Colab T4 free tier hedefleniyor).
-- Egitim verisi: `firatmio/mbpp-tr` -> `prompt_tr` (girdi) + `code` (hedef cikti).
+- Egitim verisi: `full/train` (374, referansi testini gecmeyen task 927 atilir), eval loss: `full/validation`,
+  test: `sanitized/test` (257). task_id araliklari ayrik, train script'i cakismayi assert ediyor.
+- Prompt: `prompt_tr` + ilk test (fonksiyon adini gostermek icin); hedef: ```python blogunda `code`.
+  Format tek yerde: `scripts/common.py`.
 - Degerlendirme: uretilen kodun kendi `test_list`'i ile gercekten calistirilmasi (mbpp-tr'deki
   `validate_final.py` mantigina benzer -- "iddia degil kanit" prensibi bu projede de gecerli).
 
@@ -37,7 +42,9 @@ son parcasini tamamlamak: **dataset (mbpp-tr) -> model (bu proje) -> demo (Space
 
 ## Klasor yapisi
 
-- `notebooks/` -- Colab'da calistirilacak .ipynb dosyalari
+- `notebooks/train_colab.ipynb` -- ince notebook; asil mantik script'lerde
+- `scripts/check_references.py` -- harness dogrulama (referans kod testlerini geciyor mu)
+- `scripts/train_lora.py`, `scripts/evaluate.py` -- egitim ve pass@1 eval
 - `scripts/` -- yardimci Python script'leri (eval, upload vb.)
 - `data/` -- gerekirse ara veri dosyalari (buyuk dosyalar burada tutulmaz, HF Hub'dan cekilir)
 - `outputs/` -- egitim ciktilari, checkpoint'ler (buyuk olabilir, .gitignore'da)

@@ -1,7 +1,7 @@
 # mbpp-tr-finetune
 
 [firatmio/mbpp-tr](https://huggingface.co/datasets/firatmio/mbpp-tr) veri seti uzerinde
-Qwen3-1.7B-Instruct modelinin LoRA ile fine-tune edilmesi. Turkce soru -> Python kodu uretimi
+Qwen3-1.7B modelinin LoRA ile fine-tune edilmesi. Turkce soru -> Python kodu uretimi
 gorevine ozellestirme.
 
 Bu proje, [mbpp-tr](https://github.com/firatmio/mbpp-tr) dataset projesinin devami:
@@ -9,14 +9,25 @@ Bu proje, [mbpp-tr](https://github.com/firatmio/mbpp-tr) dataset projesinin deva
 
 ## Durum
 
-Henuz baslangic asamasinda -- egitim notebook'u hazirlaniyor.
+Egitim/eval kodu hazir ve yerelde duman testinden gecti; tam egitim Colab'da calistirilacak.
+
+## Calistirma
+
+`notebooks/train_colab.ipynb` dosyasini Colab'da (T4) ac ve sirayla calistir. Ya da dogrudan:
+
+```bash
+python scripts/check_references.py --config sanitized --split test   # harness dogrulama
+python scripts/evaluate.py --out outputs/eval_base                    # baseline
+python scripts/train_lora.py --output_dir outputs/lora                # egitim
+python scripts/evaluate.py --adapter outputs/lora/final --out outputs/eval_lora
+```
 
 ## Plan
 
-- Base model: Qwen3-1.7B-Instruct (Apache 2.0)
+- Base model: Qwen3-1.7B (Apache 2.0)
 - Yontem: LoRA, Google Colab (T4 free tier)
 - Veri: `firatmio/mbpp-tr` (`prompt_tr` -> `code`)
-- Degerlendirme: uretilen kodun kendi test'leriyle calistirilmasi
+- Degerlendirme: `sanitized/test` (257) uzerinde greedy pass@1, uretilen kod kendi test'leriyle calistirilarak
 
 Detaylar icin bkz. `CLAUDE.md`.
 
