@@ -1,6 +1,6 @@
 # Colab notebook'unda kullanılan bağımlılıklar
 # (from_pretrained(dtype=...) için transformers>=4.56 gerekli)
-torch
+# torch bilerek yok: Colab'ın hazır kurulu CUDA uyumlu torch'u kullanılır, -U ile yükseltilmemeli.
 transformers>=4.56.0
 datasets>=3.0.0
 peft>=0.13.0
