@@ -27,7 +27,7 @@ def parse_args():
     ap.add_argument("--split", default="test")
     ap.add_argument("--limit", type=int, default=None, help="Hizli deneme icin ilk N ornek")
     ap.add_argument("--batch_size", type=int, default=16)
-    ap.add_argument("--max_new_tokens", type=int, default=512)
+    ap.add_argument("--max_new_tokens", type=int, default=1024)
     ap.add_argument("--out", required=True)
     return ap.parse_args()
 
