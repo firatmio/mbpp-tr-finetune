@@ -11,7 +11,7 @@ import tempfile
 from concurrent.futures import ThreadPoolExecutor
 
 
-def run_tests(code: str, tests: list[str], setup: str = "", timeout: float = 10.0) -> dict:
+def run_tests(code: str, tests: list[str], setup: str = "", timeout: float = 30.0) -> dict:
     program = "\n\n".join([setup, code, "\n".join(tests)]) + "\n"
     with tempfile.TemporaryDirectory() as tmp:
         path = os.path.join(tmp, "prog.py")
@@ -37,8 +37,13 @@ def run_tests(code: str, tests: list[str], setup: str = "", timeout: float = 10.
     return {"passed": False, "status": status, "error": last[:300]}
 
 
-def run_many(jobs: list[dict], timeout: float = 10.0, workers: int = 8) -> list[dict]:
-    """jobs: [{"code", "tests", "setup"}] -> ayni sirada sonuc listesi."""
+def run_many(jobs: list[dict], timeout: float = 30.0, workers: int | None = None) -> list[dict]:
+    """jobs: [{"code", "tests", "setup"}] -> ayni sirada sonuc listesi.
+
+    Paralel is sayisi CPU sayisini gecmez: Colab'da 2 vCPU var, fazlasi yavas testleri
+    (orn. task 123, tek basina ~2-3 sn) CPU yarisiyla yapay olarak timeout'a dusurur.
+    """
+    workers = workers or min(8, os.cpu_count() or 1)
     with ThreadPoolExecutor(max_workers=workers) as pool:
         return list(
             pool.map(lambda j: run_tests(j["code"], j["tests"], j.get("setup", ""), timeout), jobs)
