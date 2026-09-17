@@ -5,7 +5,11 @@
 [firatmio/mbpp-tr](https://huggingface.co/datasets/firatmio/mbpp-tr) veri seti uzerinde kucuk bir acik
 modeli (Qwen3-1.7B) LoRA ile fine-tune ederek "Turkce soru -> Python kodu" gorevine
 ozellestirmek. Amac, Firat'in HuggingFace profilini (CV icin) guclendiren uclu bir proje zincirinin
-son parcasini tamamlamak: **dataset (mbpp-tr) -> model (bu proje) -> demo (Space, siradaki adim)**.
+son parcasini tamamlamak: **dataset (mbpp-tr) -> model (bu proje)**.
+
+**Durum (2026-09-17): Proje tamamlandi.** Fine-tune base modeli gecemedi (sonuclar `EXPERIMENTS.md`).
+HF'de public deney raporu: `firatmio/qwen3-1.7b-mbpp-tr-lora` (kart = `MODEL_CARD.md`). Demo (Space)
+yapilmamasina karar verildi: 1.7B uzerinde fine-tune tek basina ilgi cekici degil, isteyen indirip kullanir.
 
 ## Baglam / onceki adimlar
 
