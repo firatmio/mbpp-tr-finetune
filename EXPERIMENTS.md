@@ -46,3 +46,13 @@ sanitized/test'te yalnizca bir kez olculecek.
   (diger ayarlar Deney 1 ile ayni: r=16, alpha=32, dropout=0.05, cosine, efektif batch 16)
 - Degerlendirilecek adapter: son epoch (`final`). eval_loss ile secim yok (referans stiline benzerlik olcer).
 - Raporlanacak: sanitized/test pass@1 (ana metrik), full/validation pass@1 (ek bilgi).
+
+### Deney 2 -- RFT verisi (egitimden once)
+
+`generate_rft_data.py` ciktisi (Colab T4, greedy, tek tur):
+
+| full/train gorev | kabul | assertion_error | error | testi gecip yarim kalan |
+|---|---|---|---|---|
+| 374 | **151** (40.4%) | 166 | 57 | 0 |
+
+151 ornek, efektif batch 16 ile epoch basina 10 adim, toplam 20 adim.
