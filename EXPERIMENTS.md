@@ -75,3 +75,19 @@ Yorum:
   ile bulunan dogru cozumlerden gelir; `--num_samples 0` bu kismi atladi. Bu, deney tasarlanirken
   ongorulmeliydi.
 - sanitized/test bu deneyle ilk kez "tek seferlik" olarak kullanildi.
+
+## Tani -- Turkce cevirinin maliyeti
+
+Ayni 257 gorev (sanitized/test), base model, ayni sablonun birebir Ingilizce karsiligi (`--prompt_lang en`,
+`prompt_en`). Colab GPU kotasi doldugu icin iki dil de ayni yerel makinede olculdu (RTX 4060, bf16);
+donanim farki greedy ciktilari degistirdigi icin T4 sonucuyla dogrudan karsilastirilmadi.
+
+| Prompt | pass@1 | aciklamali cevap orani |
+|---|---|---|
+| Turkce | 53.7% (138) | %58 |
+| Ingilizce | 57.6% (148) | %23 |
+
+- Gorev bazinda: ikisi de 116, yalnizca TR 22, yalnizca EN 32. Exact McNemar p = 0.22 (anlamli degil).
+- Yerel TR ile Colab T4 TR (55.6%) 257 gorevin 250'sinde ayni sonuc.
+- Sonuc: Turkce'nin maliyeti kucuk (en fazla birkac puan); sinir modelin kodlama becerisi. Fine-tune ile
+  kapatilacak bir dil acigi zaten kucuktu. Egitim deneyleri burada kapatildi.
