@@ -7,7 +7,15 @@ Veri bolunmesi (task_id araliklari MBPP'de ayrik):
 
 Loss sadece cevap (kod) tokenlarinda hesaplanir; prompt tokenlari -100 ile maskelenir.
 
+Iki mod:
+  referans (deney 1): hedef = veri setindeki `code`
+  RFT (--rft_file)  : hedef = base modelin testi gecen kendi cevabi (generate_rft_data.py)
+    RFT'de eval_loss hala MBPP referans kodu uzerinden hesaplanir, yani "referans stiline benzerlik"
+    olcer; bu yuzden en iyi epoch eval_loss ile SECILMEZ, tum epoch checkpoint'leri saklanir ve
+    secim validation pass@1 ile disarida yapilir.
+
     python scripts/train_lora.py --output_dir outputs/lora
+    python scripts/train_lora.py --output_dir outputs/lora_rft --rft_file outputs/rft/train.jsonl --epochs 2 --lr 1e-4
 """
 
 import argparse
@@ -45,6 +53,7 @@ def parse_args():
     ap.add_argument("--seed", type=int, default=42)
     ap.add_argument("--max_steps", type=int, default=-1, help="Duman testi icin; -1 = epochs kullan")
     ap.add_argument("--precision", default="auto", choices=["auto", "fp16", "bf16"])
+    ap.add_argument("--rft_file", default=None, help="generate_rft_data.py ciktisi (train.jsonl)")
     return ap.parse_args()
 
 
@@ -61,7 +70,8 @@ def drop_broken_references(ds):
 def tokenize_fn(tokenizer, max_len):
     def fn(ex):
         prompt_ids = tokenizer(build_prompt_text(tokenizer, ex), add_special_tokens=False)["input_ids"]
-        target_ids = tokenizer(build_target(ex) + tokenizer.eos_token, add_special_tokens=False)["input_ids"]
+        target = ex.get("target") or build_target(ex)
+        target_ids = tokenizer(target + tokenizer.eos_token, add_special_tokens=False)["input_ids"]
         input_ids = (prompt_ids + target_ids)[:max_len]
         labels = ([-100] * len(prompt_ids) + target_ids)[:max_len]
         return {"input_ids": input_ids, "attention_mask": [1] * len(input_ids), "labels": labels}
@@ -79,7 +89,15 @@ def main():
     overlap = test_ids & (set(train_ds["task_id"]) | set(val_ds["task_id"]))
     assert not overlap, f"Test setiyle cakisan task_id'ler var: {sorted(overlap)}"
 
-    train_ds, dropped = drop_broken_references(train_ds)
+    if args.rft_file:
+        with open(args.rft_file, encoding="utf-8") as f:
+            targets = {r["task_id"]: r["target"] for r in map(json.loads, f)}
+        # Hedefler testle dogrulanmis model cevaplari; referansi bozuk gorevlerin testi zaten gecilemez.
+        train_ds = train_ds.filter(lambda ex: ex["task_id"] in targets)
+        train_ds = train_ds.map(lambda ex: {"target": targets[ex["task_id"]]})
+        dropped = []
+    else:
+        train_ds, dropped = drop_broken_references(train_ds)
 
     tokenizer = AutoTokenizer.from_pretrained(args.model_id)
     # Qwen3'te eos_token = <|im_end|>; chat sablonundaki asistan turu da bununla biter.
@@ -131,9 +149,9 @@ def main():
         logging_steps=5,
         eval_strategy="epoch",
         save_strategy="epoch",
-        save_total_limit=2,
-        load_best_model_at_end=True,
-        metric_for_best_model="eval_loss",
+        save_total_limit=None if args.rft_file else 2,
+        load_best_model_at_end=not args.rft_file,
+        metric_for_best_model=None if args.rft_file else "eval_loss",
         fp16=not use_bf16,
         bf16=use_bf16,
         seed=args.seed,
@@ -159,6 +177,8 @@ def main():
                 "base_model": args.model_id,
                 "dataset": DATASET_ID,
                 "train_split": "full/train",
+                "mode": "rft" if args.rft_file else "reference",
+                "rft_file": args.rft_file,
                 "val_split": "full/validation",
                 "train_examples": len(train_tok),
                 "dropped_task_ids": dropped,

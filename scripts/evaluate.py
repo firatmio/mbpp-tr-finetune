@@ -32,16 +32,32 @@ def parse_args():
     return ap.parse_args()
 
 
+def load_model(model_id, adapter=None):
+    tokenizer = AutoTokenizer.from_pretrained(model_id, padding_side="left")
+    if tokenizer.pad_token is None:
+        tokenizer.pad_token = tokenizer.eos_token
+    dtype = torch.bfloat16 if torch.cuda.is_available() and torch.cuda.is_bf16_supported() else torch.float16
+    model = AutoModelForCausalLM.from_pretrained(model_id, dtype=dtype, device_map="auto")
+    if adapter:
+        from peft import PeftModel
+
+        model = PeftModel.from_pretrained(model, adapter)
+    model.eval()
+    return model, tokenizer
+
+
 @torch.no_grad()
-def generate_all(model, tokenizer, prompts, batch_size, max_new_tokens):
+def generate_all(model, tokenizer, prompts, batch_size, max_new_tokens, **gen_kwargs):
+    """gen_kwargs verilmezse greedy; ornekleme icin do_sample=True, temperature=... gecilir."""
+    gen_kwargs = gen_kwargs or {"do_sample": False}
     outputs = []
     for i in range(0, len(prompts), batch_size):
         batch = tokenizer(prompts[i : i + batch_size], return_tensors="pt", padding=True).to(model.device)
         gen = model.generate(
             **batch,
             max_new_tokens=max_new_tokens,
-            do_sample=False,
             pad_token_id=tokenizer.pad_token_id,
+            **gen_kwargs,
         )
         new_tokens = gen[:, batch["input_ids"].shape[1] :]
         outputs.extend(tokenizer.batch_decode(new_tokens, skip_special_tokens=True))
@@ -57,16 +73,7 @@ def main():
     if args.limit:
         ds = ds.select(range(min(args.limit, len(ds))))
 
-    tokenizer = AutoTokenizer.from_pretrained(args.model_id, padding_side="left")
-    if tokenizer.pad_token is None:
-        tokenizer.pad_token = tokenizer.eos_token
-    dtype = torch.bfloat16 if torch.cuda.is_available() and torch.cuda.is_bf16_supported() else torch.float16
-    model = AutoModelForCausalLM.from_pretrained(args.model_id, dtype=dtype, device_map="auto")
-    if args.adapter:
-        from peft import PeftModel
-
-        model = PeftModel.from_pretrained(model, args.adapter)
-    model.eval()
+    model, tokenizer = load_model(args.model_id, args.adapter)
 
     prompts = [build_prompt_text(tokenizer, ex) for ex in ds]
     completions = generate_all(model, tokenizer, prompts, args.batch_size, args.max_new_tokens)
