@@ -28,6 +28,7 @@ def parse_args():
     ap.add_argument("--limit", type=int, default=None, help="Hizli deneme icin ilk N ornek")
     ap.add_argument("--batch_size", type=int, default=16)
     ap.add_argument("--max_new_tokens", type=int, default=1024)
+    ap.add_argument("--prompt_lang", default="tr", choices=["tr", "en"], help="en: tani icin prompt_en")
     ap.add_argument("--out", required=True)
     return ap.parse_args()
 
@@ -75,7 +76,7 @@ def main():
 
     model, tokenizer = load_model(args.model_id, args.adapter)
 
-    prompts = [build_prompt_text(tokenizer, ex) for ex in ds]
+    prompts = [build_prompt_text(tokenizer, ex, args.prompt_lang) for ex in ds]
     completions = generate_all(model, tokenizer, prompts, args.batch_size, args.max_new_tokens)
 
     codes = [extract_code(c) for c in completions]
@@ -85,7 +86,8 @@ def main():
 
     with open(os.path.join(args.out, "samples.jsonl"), "w", encoding="utf-8") as f:
         for ex, comp, code, r in zip(ds, completions, codes, results):
-            row = {"task_id": ex["task_id"], "prompt_tr": ex["prompt_tr"], "completion": comp, "code": code, **r}
+            prompt = ex[f"prompt_{args.prompt_lang}"]
+            row = {"task_id": ex["task_id"], "prompt_tr": prompt, "completion": comp, "code": code, **r}
             f.write(json.dumps(row, ensure_ascii=False) + "\n")
 
     n_pass = sum(r["passed"] for r in results)
@@ -93,6 +95,7 @@ def main():
         "model_id": args.model_id,
         "adapter": args.adapter,
         "dataset": f"{DATASET_ID}/{args.config}/{args.split}",
+        "prompt_lang": args.prompt_lang,
         "n": len(ds),
         "passed": n_pass,
         "pass@1": round(n_pass / len(ds), 4),

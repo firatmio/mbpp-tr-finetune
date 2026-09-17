@@ -16,15 +16,21 @@ USER_TEMPLATE = (
     "{prompt}\n\nKodunuz şu testi geçmeli:\n{first_test}\n\n"
     "Yalnızca Python kodunu ```python bloğu içinde verin."
 )
+# Sadece tani amacli (Turkce cevirinin maliyeti): ayni sablonun birebir Ingilizce karsiligi, prompt_en ile.
+USER_TEMPLATE_EN = (
+    "{prompt}\n\nYour code should pass this test:\n{first_test}\n\n"
+    "Provide only the Python code in a ```python block."
+)
 
 
 def normalize_code(code: str) -> str:
     return code.replace("\r\n", "\n").strip()
 
 
-def build_messages(example: dict) -> list[dict]:
-    content = USER_TEMPLATE.format(
-        prompt=example["prompt_tr"].strip(),
+def build_messages(example: dict, lang: str = "tr") -> list[dict]:
+    template = USER_TEMPLATE_EN if lang == "en" else USER_TEMPLATE
+    content = template.format(
+        prompt=example[f"prompt_{lang}"].strip(),
         first_test=example["test_list"][0].strip(),
     )
     return [{"role": "user", "content": content}]
@@ -34,11 +40,11 @@ def build_target(example: dict) -> str:
     return f"```python\n{normalize_code(example['code'])}\n```"
 
 
-def build_prompt_text(tokenizer, example: dict) -> str:
+def build_prompt_text(tokenizer, example: dict, lang: str = "tr") -> str:
     # Qwen3 hybrid-thinking modeli: enable_thinking=False ile bos <think></think> blogu eklenir,
     # model dogrudan cevaba gecer. Egitim ve eval ayni sablonu kullanir.
     return tokenizer.apply_chat_template(
-        build_messages(example),
+        build_messages(example, lang),
         tokenize=False,
         add_generation_prompt=True,
         enable_thinking=False,
