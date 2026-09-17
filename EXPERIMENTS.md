@@ -56,3 +56,22 @@ sanitized/test'te yalnizca bir kez olculecek.
 | 374 | **151** (40.4%) | 166 | 57 | 0 |
 
 151 ornek, efektif batch 16 ile epoch basina 10 adim, toplam 20 adim.
+
+### Deney 2 -- Sonuclar
+
+Egitim: `train=151 val=90 max_tokens=585` (kirpilan ornek yok), 20 adim, 9.3 dk (T4).
+train loss ilk loglamada 0.090, son 0.071; eval_loss (referans kod uzerinde) 3.493 / 3.545
+(Deney 1'de 0.62 -- model referans stilini kopyalamadi).
+
+| Set | Base | Deney 1 | Deney 2 (RFT) |
+|---|---|---|---|
+| sanitized/test (257) | **55.6%** (143) | 49.0% (126) | 54.9% (141) |
+| full/validation (90) | 33.3% (30) | 41.1% (37) | 34.4% (31) |
+
+Yorum:
+- Base'e gore fark -2 / +1 gorev: gurultu sinirinda, pratikte degisim yok. Deney 1'deki bozulma olusmadi.
+- Sebep: hedefler modelin kendi **greedy** ciktilariydi; model bunlari zaten uretiyordu (ilk loss 0.09),
+  ogrenilecek sinyal neredeyse yoktu. RFT'nin kazanci normalde greedy'nin cozemedigi gorevlerde ornekleme
+  ile bulunan dogru cozumlerden gelir; `--num_samples 0` bu kismi atladi. Bu, deney tasarlanirken
+  ongorulmeliydi.
+- sanitized/test bu deneyle ilk kez "tek seferlik" olarak kullanildi.
